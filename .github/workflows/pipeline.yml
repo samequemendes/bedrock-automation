@@ -1,0 +1,208 @@
+name: CI/CD - Lint, Tests, Deploy Infra e Deploy App
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  workflow_dispatch:
+    inputs:
+      destroy_environment:
+        description: "Destruir infraestrutura?"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+
+  # 🛠️ Etapa 1: Lint no código Python
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Instalar dependências
+        run: |
+          cd src
+          python -m pip install --upgrade pip
+          pip install flake8
+
+      - name: Rodar Flake8
+        run: |
+          cd src
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+  # 🧪 Etapa 2: Rodar testes automatizados
+  tests:
+    needs: lint
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: ["3.8"]
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Instalar dependências
+        run: |
+          cd src
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Rodar testes
+        run: |
+          cd src
+          python test.py
+
+  # 🚀 Etapa 3: Provisionar Infra AWS com Terraform
+  deploy_infra:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Configurar AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Inicializar Terraform
+        run: |
+          cd infra
+          terraform init
+
+      - name: Aplicar Terraform (Ambiente correto)
+        run: |
+          cd infra
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            terraform apply -var-file=environments/prd.tfvars -auto-approve
+          elif [[ "${{ github.ref_name }}" == "staging" ]]; then
+            terraform apply -var-file=environments/hml.tfvars -auto-approve
+          fi
+
+  # 🎯 Etapa 4: Build, Upload para S3 e Deploy no Beanstalk
+  deploy_app:
+    needs: deploy_infra
+    runs-on: ubuntu-latest
+    steps:
+      
+      - name: Deploy to AWS Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v18
+        with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        application_name: ${{ env.APPLICATION_NAME }}
+        environment_name: ${{ env.ENVIRONMENT_NAME }}
+        version_label: v${{ github.run_id }}
+        region: us-east-1
+        version_description: "Deploy do commit ${{ github.sha }}"
+        deployment_package: ${{ github.workspace }}/app.zip
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Configurar AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Criar pacote ZIP da aplicação
+        run: |
+          cd src
+          ZIP_FILE="app-$(date +%Y%m%d%H%M%S).zip"
+          zip -r "../$ZIP_FILE" . -x ".git/*" "__pycache__/*" "venv/*" "*.DS_Store"
+          echo "ZIP_FILE=$ZIP_FILE" >> $GITHUB_ENV
+      
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v22
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: MyApplicationName
+          environment_name: MyApplication-Environment
+          version_label: $ZIP_FILE
+          region: us-west-2
+          deployment_package: $GITHUB_ENV
+
+
+      # - name: Upload para S3
+      #   run: |
+      #     aws s3 cp ${{ env.ZIP_FILE }} s3://${{ secrets.S3_BUCKET }}/${{ env.ZIP_FILE }}
+
+      # - name: Criar nova versão da aplicação no Elastic Beanstalk
+      #   run: |
+      #     aws elasticbeanstalk create-application-version \
+      #       --application-name 4linux-devops-samequemendes \
+      #       --version-label ${{ env.ZIP_FILE }} \
+      #       --source-bundle S3Bucket=${{ secrets.S3_BUCKET }},S3Key=${{ env.ZIP_FILE }}
+
+      # - name: Atualizar ambiente do Elastic Beanstalk
+      #   run: |
+      #     aws elasticbeanstalk update-environment \
+      #       --environment-name meu-app-env \
+      #       --version-label ${{ env.ZIP_FILE }}
+
+  approve_destroy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Esperando Aprovação Manual
+        run: echo "Aguardando aprovação para destruir o ambiente..."
+    
+    # A etapa precisa ser aprovada manualmente no GitHub antes de continuar
+    environment:
+      name: staging-approval
+      url: https://github.com/${{ github.repository }}/actions
+
+  destroy_infra:
+    needs: approve_destroy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Configurar AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Inicializar Terraform
+        run: |
+          cd infra
+          terraform init
+
+      - name: Aplicar Terraform (Ambiente correto)
+        run: |
+          cd infra
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            terraform destroy -var-file=environments/prd.tfvars -auto-approve
+          elif [[ "${{ github.ref_name }}" == "staging" ]]; then
+            terraform destroy -var-file=environments/hml.tfvars -auto-approve
+          fi
