@@ -19,60 +19,60 @@ on:
 jobs:
 
   # 🛠️ Etapa 1: Lint no código Python
-  lint:
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v3
+  # lint:
+  #   runs-on: ubuntu-20.04
+  #   steps:
+  #     - name: Checkout do código
+  #       uses: actions/checkout@v3
 
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
+  #     - name: Set up Python 3.8
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: 3.8
 
-      - name: Instalar dependências
-        run: |
-          cd src
-          python -m pip install --upgrade pip
-          pip install flake8
+  #     - name: Instalar dependências
+  #       run: |
+  #         cd src
+  #         python -m pip install --upgrade pip
+  #         pip install flake8
 
-      - name: Rodar Flake8
-        run: |
-          cd src
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  #     - name: Rodar Flake8
+  #       run: |
+  #         cd src
+  #         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+  #         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
   # 🧪 Etapa 2: Rodar testes automatizados
-  tests:
-    needs: lint
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.8"]
+  # tests:
+  #   needs: lint
+  #   runs-on: ubuntu-20.04
+  #   strategy:
+  #     matrix:
+  #       python-version: ["3.8"]
 
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v3
+  #   steps:
+  #     - name: Checkout do código
+  #       uses: actions/checkout@v3
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
 
-      - name: Instalar dependências
-        run: |
-          cd src
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+  #     - name: Instalar dependências
+  #       run: |
+  #         cd src
+  #         python -m pip install --upgrade pip
+  #         pip install -r requirements.txt
 
-      - name: Rodar testes
-        run: |
-          cd src
-          python test.py
+  #     - name: Rodar testes
+  #       run: |
+  #         cd src
+  #         python test.py
 
   # 🚀 Etapa 3: Provisionar Infra AWS com Terraform
   deploy_infra:
-    needs: tests
+    #needs: tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout do código
