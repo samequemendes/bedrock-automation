@@ -1,26 +1,24 @@
-variable "app_name" {
-  description = "Nome da aplicação"
+variable "region" {
   type        = string
+  description = "Região AWS"
 }
 
-variable "app_language" {
-  description = "Linguagem da aplicação"
+variable "profile" {
   type        = string
-  default     = "Python"
+  description = "Perfil AWS CLI"
 }
 
-variable "app_language_version" {
-  description = "Versão da linguagem da aplicação"
+variable "foundation_model" {
   type        = string
-  default     = "3.8"
+  description = "Modelo base para os agentes (ex: anthropic.claude-v2)"
 }
 
-variable "aws_region" {
-  description = "Região AWS onde o ambiente será criado"
+variable "lambda_arn" {
   type        = string
+  description = "ARN da Lambda já existente para a Action Group"
 }
 
-variable "env" {
-  description = "ambiente"
-  type = string
+variable "schema_yaml_s3_uri" {
+  type        = string
+  description = "S3 URI do arquivo YAML com schema do Action Group"
 }

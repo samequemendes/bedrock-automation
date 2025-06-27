@@ -1,48 +1,74 @@
-# Criando a aplicação no Elastic Beanstalk
-resource "aws_elastic_beanstalk_application" "app" {
-  name        = var.app_name
-  description = "Aplicação ${var.app_name} no Elastic Beanstalk"
+# ==========================
+# AGENT 1 - SUPERVISOR
+# ==========================
+resource "aws_bedrockagent_knowledge_base" "kb_supervisor" {
+  name        = "kb-supervisor"
+  description = "Base de conhecimento do agente supervisor"
+  type        = "VECTOR"
 }
 
-# Criando o ambiente do Elastic Beanstalk
-resource "aws_elastic_beanstalk_environment" "env" {
-  name                = "${var.app_name}-${var.env}"
-  application         = aws_elastic_beanstalk_application.app.name
-  solution_stack_name = "64bit Amazon Linux 2 v3.7.8 running Python 3.8"  # Plataforma exata conforme imagem
+resource "aws_bedrockagent_guardrail" "guardrail_supervisor" {
+  name        = "guardrail-supervisor"
+  description = "Guardrail base supervisor"
+}
 
-  setting {
-    namespace = "aws:elasticbeanstalk:environment"
-    name      = "EnvironmentType"
-    value     = "LoadBalanced"
-  }
+resource "aws_bedrockagent_orchestration_strategy" "strategy_supervisor" {
+  name        = "orchestration-supervisor"
+  description = "Orquestração base supervisor"
+}
 
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "InstanceType"
-    value     = "t3.micro"
-  }
+resource "aws_bedrockagent_agent" "agent_supervisor" {
+  name               = "agent-supervisor"
+  instruction        = "Agente supervisor customizável"
+  foundation_model   = var.foundation_model
+  knowledge_base_ids = [aws_bedrockagent_knowledge_base.kb_supervisor.id]
+  guardrail_ids      = [aws_bedrockagent_guardrail.guardrail_supervisor.id]
+  orchestration_strategy_id = aws_bedrockagent_orchestration_strategy.strategy_supervisor.id
+}
 
-  setting {
-    namespace = "aws:elasticbeanstalk:container:python"
-    name      = "NumProcesses"
-    value     = "3"
-  }
+# ==========================
+# AGENT 2 - COLABORADOR
+# ==========================
+resource "aws_bedrockagent_knowledge_base" "kb_colaborador" {
+  name        = "kb-colaborador"
+  description = "Base de conhecimento do agente colaborador"
+  type        = "VECTOR"
+}
 
-  setting {
-    namespace = "aws:elasticbeanstalk:container:python"
-    name      = "NumThreads"
-    value     = "20"
-  }
+resource "aws_bedrockagent_guardrail" "guardrail_colaborador" {
+  name        = "guardrail-colaborador"
+  description = "Guardrail base colaborador"
+}
 
-  setting {
-    namespace = "aws:elasticbeanstalk:application"
-    name      = "Application Healthcheck URL"
-    value     = "/"
-  }
+resource "aws_bedrockagent_orchestration_strategy" "strategy_colaborador" {
+  name        = "orchestration-colaborador"
+  description = "Orquestração base colaborador"
+}
 
-  setting {
-    namespace = "aws:autoscaling:launchconfiguration"
-    name      = "IamInstanceProfile"
-    value     = aws_iam_instance_profile.instance_profile.name
-  }
+resource "aws_bedrockagent_agent" "agent_colaborador" {
+  name               = "agent-colaborador"
+  instruction        = "Agente colaborador customizável"
+  foundation_model   = var.foundation_model
+  knowledge_base_ids = [aws_bedrockagent_knowledge_base.kb_colaborador.id]
+  guardrail_ids      = [aws_bedrockagent_guardrail.guardrail_colaborador.id]
+  orchestration_strategy_id = aws_bedrockagent_orchestration_strategy.strategy_colaborador.id
+}
+
+# ==========================
+# MULTI-AGENT COLLABORATION
+# ==========================
+resource "aws_bedrockagent_collaboration" "multi_agent" {
+  name        = "colaboration-supervisor-colaborador"
+  agent_ids   = [aws_bedrockagent_agent.agent_supervisor.id, aws_bedrockagent_agent.agent_colaborador.id]
+  description = "Integração entre supervisor e colaborador"
+}
+
+# ==========================
+# ACTION GROUP SHARED
+# ==========================
+resource "aws_bedrockagent_action_group" "shared_action_group" {
+  name                  = "action-shared"
+  agent_ids             = [aws_bedrockagent_agent.agent_supervisor.id, aws_bedrockagent_agent.agent_colaborador.id]
+  lambda_arn            = var.lambda_arn
+  action_schema_s3_uri  = var.schema_yaml_s3_uri
 }
