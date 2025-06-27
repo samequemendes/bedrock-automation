@@ -1,4 +1,4 @@
-# 4Linux DevOps - Provisionamento e Deploy no AWS Elastic Beanstalk
+# 4Linux DevOps - Provisionamento e Deploy do Bedrock
 
 Este projeto utiliza **Terraform** para provisionar a infraestrutura necessária e **GitHub Actions** para automação do deploy da aplicação no **Bedrock**.
 
@@ -9,7 +9,7 @@ Antes de começar, certifique-se de que você tem os seguintes requisitos instal
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) (versão recomendada: `>= 1.0.0`)
 - [AWS CLI](https://aws.amazon.com/cli/) configurado (`aws configure`)
 - [GitHub CLI](https://cli.github.com/)
-- Permissões adequadas no **AWS IAM** para criar recursos no **Elastic Beanstalk**
+- Permissões adequadas no **AWS IAM** para criar recursos no **Bedrock**
 - Um bucket S3 para armazenar os pacotes da aplicação
 
 ---
@@ -70,7 +70,7 @@ zip -r ../app.zip . -x ".git/*" "__pycache__/*" "venv/*" "*.DS_Store"
 aws s3 cp ../app.zip s3://meu-bucket-deploy/app.zip
 ```
 
-### **3️⃣ Criar uma Nova Versão da Aplicação no Elastic Beanstalk**
+### **3️⃣ Criar uma Nova Versão da Aplicação no Bedrock**
 
 ```sh
 aws elasticbeanstalk create-application-version \
@@ -137,7 +137,7 @@ terraform destroy -var-file=environments/prd.tfvars -auto-approve
 ## 📚 **5. Tecnologias Utilizadas**
 
 - **Terraform** → Provisionamento da infraestrutura.
-- **AWS Elastic Beanstalk** → Hospedagem da aplicação.
+- **AWS Bedrock** → Hospedagem da aplicação.
 - **AWS S3** → Armazenamento do pacote da aplicação.
 - **GitHub Actions** → Automação de deploys.
 - **Python** (Flask) → Aplicação backend.
@@ -152,7 +152,7 @@ Para clonar e rodar este projeto corretamente, configure as seguintes variáveis
 - `AWS_SECRET_ACCESS_KEY` → Chave secreta AWS
 - `AWS_REGION` → Região da AWS (`us-east-1` ou `us-east-2`)
 - `S3_BUCKET` → Nome do bucket S3 onde os pacotes serão armazenados
-- `APP_NAME` → Nome da aplicação no Elastic Beanstalk
+- `APP_NAME` → Nome da aplicação no Bedrock
 - `ENVIRONMENT_NAME` → Nome do ambiente no Beanstalk (`hml` ou `prd`)
 
 ---
