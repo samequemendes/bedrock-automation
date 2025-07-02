@@ -18,11 +18,11 @@ resource "aws_bedrockagent_orchestration_strategy" "strategy_supervisor" {
 }
 
 resource "aws_bedrockagent_agent" "agent_supervisor" {
-  name               = "agent-supervisor"
-  instruction        = "Agente supervisor customizável"
-  foundation_model   = var.foundation_model
-  knowledge_base_ids = [aws_bedrockagent_knowledge_base.kb_supervisor.id]
-  guardrail_ids      = [aws_bedrockagent_guardrail.guardrail_supervisor.id]
+  name                      = "agent-supervisor"
+  instruction               = "Agente supervisor customizável"
+  foundation_model          = var.foundation_model
+  knowledge_base_ids        = [aws_bedrockagent_knowledge_base.kb_supervisor.id]
+  guardrail_ids             = [aws_bedrockagent_guardrail.guardrail_supervisor.id]
   orchestration_strategy_id = aws_bedrockagent_orchestration_strategy.strategy_supervisor.id
 }
 
@@ -46,11 +46,11 @@ resource "aws_bedrockagent_orchestration_strategy" "strategy_colaborador" {
 }
 
 resource "aws_bedrockagent_agent" "agent_colaborador" {
-  name               = "agent-colaborador"
-  instruction        = "Agente colaborador customizável"
-  foundation_model   = var.foundation_model
-  knowledge_base_ids = [aws_bedrockagent_knowledge_base.kb_colaborador.id]
-  guardrail_ids      = [aws_bedrockagent_guardrail.guardrail_colaborador.id]
+  name                      = "agent-colaborador"
+  instruction               = "Agente colaborador customizável"
+  foundation_model          = var.foundation_model
+  knowledge_base_ids        = [aws_bedrockagent_knowledge_base.kb_colaborador.id]
+  guardrail_ids             = [aws_bedrockagent_guardrail.guardrail_colaborador.id]
   orchestration_strategy_id = aws_bedrockagent_orchestration_strategy.strategy_colaborador.id
 }
 
@@ -67,8 +67,8 @@ resource "aws_bedrockagent_collaboration" "multi_agent" {
 # ACTION GROUP SHARED
 # ==========================
 resource "aws_bedrockagent_action_group" "shared_action_group" {
-  name                  = "action-shared"
-  agent_ids             = [aws_bedrockagent_agent.agent_supervisor.id, aws_bedrockagent_agent.agent_colaborador.id]
-  lambda_arn            = var.lambda_arn
-  action_schema_s3_uri  = var.schema_yaml_s3_uri
+  name                 = "action-shared"
+  agent_ids            = [aws_bedrockagent_agent.agent_supervisor.id, aws_bedrockagent_agent.agent_colaborador.id]
+  lambda_arn           = var.lambda_arn
+  action_schema_s3_uri = var.schema_yaml_s3_uri
 }
